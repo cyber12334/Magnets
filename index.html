@@ -20,8 +20,17 @@
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
-      a-scene {
+      .example-container {
         position: fixed;
+        inset: 0;
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+      }
+
+      .example-container a-scene {
+        position: absolute;
         inset: 0;
         width: 100vw;
         height: 100vh;
@@ -111,47 +120,49 @@
       Tap for Sound
     </button>
 
-    <a-scene
-      mindar-image="imageTargetSrc: ./targets.mind;"
-      color-space="sRGB"
-      renderer="colorManagement: true, physicallyCorrectLights: true"
-      vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: false"
-      embedded
-    >
-      <a-assets>
-        <video
-          id="magnet-video"
-          src="./video.mp4"
-          preload="auto"
-          loop
-          playsinline
-          webkit-playsinline
-          muted
-          crossorigin="anonymous"
-        ></video>
-      </a-assets>
+    <div class="example-container">
+      <a-scene
+        mindar-image="imageTargetSrc: ./targets.mind;"
+        color-space="sRGB"
+        renderer="colorManagement: true, physicallyCorrectLights: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+        embedded
+      >
+        <a-assets>
+          <video
+            id="magnet-video"
+            src="./video.mp4"
+            preload="auto"
+            loop
+            playsinline
+            webkit-playsinline
+            muted
+            crossorigin="anonymous"
+          ></video>
+        </a-assets>
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0" id="magnet-target">
-        <!--
-          Set width and height to the Canva magnet's aspect ratio.
-          Portrait 3:4: width="0.75" height="1"
-          Square 1:1: width="1" height="1"
-          Landscape 4:3: width="1.33" height="1"
-          Keep the plane's ratio equal to the video ratio to avoid stretching.
-        -->
-        <a-video
-          id="magnet-video-plane"
-          src="#magnet-video"
-          width="0.75"
-          height="1"
-          position="0 0 0"
-          rotation="0 0 0"
-        ></a-video>
-      </a-entity>
-    </a-scene>
+        <a-entity mindar-image-target="targetIndex: 0" id="magnet-target">
+          <!--
+            Set width and height to the Canva magnet's aspect ratio.
+            Portrait 3:4: width="0.75" height="1"
+            Square 1:1: width="1" height="1"
+            Landscape 4:3: width="1.33" height="1"
+            Keep the plane's ratio equal to the video ratio to avoid stretching.
+          -->
+          <a-video
+            id="magnet-video-plane"
+            src="#magnet-video"
+            width="0.75"
+            height="1"
+            position="0 0 0"
+            rotation="0 0 0"
+          ></a-video>
+        </a-entity>
+      </a-scene>
+    </div>
 
     <script>
       (function () {
@@ -213,3 +224,4 @@
     </script>
   </body>
 </html>
+
