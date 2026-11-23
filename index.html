@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#111827">
+    <title>AR Magnet</title>
+
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #111827;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .status {
+        position: fixed;
+        z-index: 2;
+        top: max(16px, env(safe-area-inset-top));
+        left: 50%;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        max-width: calc(100vw - 32px);
+        padding: 10px 14px;
+        border: 1px solid rgb(255 255 255 / 16%);
+        border-radius: 999px;
+        background: rgb(17 24 39 / 78%);
+        color: #fff;
+        font-size: 14px;
+        text-align: center;
+        transform: translateX(-50%);
+        backdrop-filter: blur(8px);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        flex: 0 0 8px;
+        border-radius: 50%;
+        background: #fbbf24;
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+
+      .status[data-state="ready"] .status-dot,
+      .status[data-state="found"] .status-dot {
+        background: #34d399;
+        animation: none;
+      }
+
+      .status[data-state="error"] .status-dot {
+        background: #fb7185;
+        animation: none;
+      }
+
+      .sound-button {
+        position: fixed;
+        z-index: 2;
+        right: max(18px, env(safe-area-inset-right));
+        bottom: max(22px, env(safe-area-inset-bottom));
+        padding: 12px 18px;
+        border: 1px solid rgb(255 255 255 / 24%);
+        border-radius: 999px;
+        background: rgb(17 24 39 / 84%);
+        color: #fff;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+      }
+
+      .sound-button[hidden] {
+        display: none;
+      }
+
+      .sound-button:focus-visible {
+        outline: 3px solid #fbbf24;
+        outline-offset: 3px;
+      }
+
+      @keyframes pulse {
+        50% {
+          opacity: 0.35;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="status" id="status" data-state="loading" role="status" aria-live="polite">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span id="status-message">Starting camera…</span>
+    </div>
+
+    <button class="sound-button" id="sound-button" type="button" hidden>
+      Tap for Sound
+    </button>
+
+    <a-scene
+      mindar-image="imageTargetSrc: ./targets.mind;"
+      color-space="sRGB"
+      renderer="colorManagement: true, physicallyCorrectLights: true"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+      embedded
+    >
+      <a-assets>
+        <video
+          id="magnet-video"
+          src="./video.mp4"
+          preload="auto"
+          loop
+          playsinline
+          webkit-playsinline
+          muted
+          crossorigin="anonymous"
+        ></video>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0" id="magnet-target">
+        <!--
+          Set width and height to the Canva magnet's aspect ratio.
+          Portrait 3:4: width="0.75" height="1"
+          Square 1:1: width="1" height="1"
+          Landscape 4:3: width="1.33" height="1"
+          Keep the plane's ratio equal to the video ratio to avoid stretching.
+        -->
+        <a-video
+          id="magnet-video-plane"
+          src="#magnet-video"
+          width="0.75"
+          height="1"
+          position="0 0 0"
+          rotation="0 0 0"
+        ></a-video>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      (function () {
+        const scene = document.querySelector("a-scene");
+        const target = document.querySelector("#magnet-target");
+        const video = document.querySelector("#magnet-video");
+        const status = document.querySelector("#status");
+        const statusMessage = document.querySelector("#status-message");
+        const soundButton = document.querySelector("#sound-button");
+
+        function setStatus(message, state) {
+          statusMessage.textContent = message;
+          status.dataset.state = state;
+        }
+
+        function startTrackingEvents() {
+          scene.addEventListener("arReady", function () {
+            setStatus("Point your camera at the magnet", "ready");
+          });
+
+          scene.addEventListener("arError", function () {
+            setStatus("Camera or tracking could not start. Check camera permission.", "error");
+          });
+
+          target.addEventListener("targetFound", function () {
+            setStatus("Magnet found", "found");
+            soundButton.hidden = false;
+            video.play().catch(function () {
+              // Playback may wait for a user gesture; the sound button provides one.
+            });
+          });
+
+          target.addEventListener("targetLost", function () {
+            video.pause();
+            soundButton.hidden = true;
+            setStatus("Point your camera at the magnet", "ready");
+          });
+        }
+
+        if (scene.hasLoaded) {
+          startTrackingEvents();
+        } else {
+          scene.addEventListener("loaded", startTrackingEvents, { once: true });
+        }
+
+        soundButton.addEventListener("click", function () {
+          video.muted = false;
+          video.play().then(function () {
+            soundButton.textContent = "Sound On";
+          }).catch(function () {
+            setStatus("Tap again to allow video playback", "error");
+          });
+        });
+
+        video.addEventListener("error", function () {
+          setStatus("Replace video.mp4 with your video file", "error");
+        });
+      }());
+    </script>
+  </body>
+</html>
